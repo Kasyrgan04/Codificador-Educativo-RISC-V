@@ -1,23 +1,11 @@
 #!/usr/bin/env python3
-"""
-Esqueleto del Codificador Educativo de Instrucciones RISC-V.
-CE4301 Arquitectura de Computadores I — Proyecto Individual — 2026-II
-
-Este esqueleto ya implementa el contrato de línea de comandos y de salida
-requerido por la especificación. Usted debe completar las dos funciones
-marcadas con TODO; puede modificar el resto del archivo si lo necesita,
-siempre que se preserve el contrato de invocación y la línea "HEX: 0x...".
-
-No es obligatorio usar este esqueleto ni Python: puede implementar su
-propia herramienta desde cero, en el lenguaje que prefiera, siempre que
-respete el mismo contrato (ver especificación, sección "Modo de operación").
-"""
 import sys
 
 SOPORTADAS = ["add", "sub", "and", "or", "addi", "andi",
               "lw", "lb", "sw", "sb", "beq", "bne"]
 
 INSTRUCTIONS = {
+    # FORMATO R 
     "add": {
         "type" : "R",
         "opcode" : 0b0110011,
@@ -33,24 +21,64 @@ INSTRUCTIONS = {
     },
 
     "and" : {
-            "type" : "R",
-            "opcode" : 0b0110011,
-            "funct3" : 0b111,
-            "funct7" : 0b0000000
+        "type" : "R",
+        "opcode" : 0b0110011,
+        "funct3" : 0b111,
+        "funct7" : 0b0000000
         },
 
     "or" : {
-                "type" : "R",
-                "opcode" : 0b0110011,
-                "funct3" : 0b110,
-                "funct7" : 0b0100000
-        }
+        "type" : "R",
+        "opcode" : 0b0110011,
+        "funct3" : 0b110,
+        "funct7" : 0b0100000
+    },
+
+    # FORMATO I ARITMETICO
+
+    "addi" : {
+        "type" : "I",
+        "opcode" : 0b0010011,
+        "funct3" : 0b000
+    },
+
+    "andi" : {
+        "type" : "I",
+        "opcode" : 0b0010011,
+        "funct3" : 0b111
+    },
+
+    # FORMATO I CARGA
+
+    "lw" : {
+        "type" : "I",
+        "opcode" : 0b0000011,
+        "funct3" : 0b010
+    },
+
+    "lb" : {
+        "type" : "I",
+        "opcode" : 0b0000011,
+        "funct3" : 0b000
+        },
+
+    # FORMATO S
+
+    "sw" : {
+        "type" : "S",
+        "opcode" : 0b0100011,
+        "funct3" : 0b010
+    },
+
+    "sb" : {
+        "type" : "S",
+        "opcode" : 0b0100011,
+        "funct3" : 0b000
+    },
 }
 
 def get_instruction_info(mnemonic):
     return INSTRUCTIONS[mnemonic]
-
-
 
 def parse_instruction(instruction: str):
     instruction = instruction.replace(",", "")
@@ -60,6 +88,16 @@ def parse_instruction(instruction: str):
 
     return mnemonic, operands
 
+#Toma operandos de memoria con offset y los parsea en offset y registro
+#Ejemplo: "4(x5)" -> (4, 5)
+def parse_memory_operand(operand):
+    offset, reg = operand.split("(")
+    reg = reg.replace(")", "")
+    imm = int(offset)
+    rs1 = register_number(reg)
+    return imm, rs1
+
+#Obtiene unicamente el número de registro eliminando la "x"
 def register_number(reg):
 
     number = int(reg.replace("x", ""))
@@ -68,6 +106,10 @@ def register_number(reg):
         raise ValueError("Número de registro fuera de rango")
 
     return number
+
+def immediate_bits(value, bits):
+    value = int(value)
+    return value & ((1 << bits) - 1)
 
 def encode_R(info, operands):
     rd = register_number(operands[0])
@@ -85,7 +127,46 @@ def encode_R(info, operands):
 
     return word
 
+def encode_I(info, operands):
+    rd = register_number(operands[0])
 
+    #Para instrucciones de carga
+    if info["opcode"] == 0b0000011:
+        imm, rs1 = parse_memory_operand(operands[1])
+    else:
+        rs1 = register_number(operands[1])
+        imm = operands[2]
+
+    imm = immediate_bits(imm, 12)
+
+    word = (
+        (imm << 20) |
+        (rs1 << 15) |
+        (info["funct3"] << 12) |
+        (rd << 7) |
+        (info["opcode"])
+    )
+
+    return word
+
+def encode_S(info, operands):
+    rs2 = register_number(operands[0])
+    imm, rs1 = parse_memory_operand(operands[1])
+
+    imm = immediate_bits(imm, 12)
+
+    imm_11_5 = (imm>>5) & 0x7F
+    imm_4_0 = imm & 0x1F
+
+    word = (
+        (imm_11_5 << 25) |
+        (rs2 << 20) |
+        (rs1 << 15) |
+        (info["funct3"] << 12) |
+        (imm_4_0 << 7) |
+        (info["opcode"])
+    )
+    return word
 
 def encode_instruction(instruction: str) -> int:
     
@@ -108,6 +189,10 @@ def encode_instruction(instruction: str) -> int:
 
     if info["type"] == "R":
         return encode_R(info, operands)
+    elif info["type"] == "I":
+        return encode_I(info, operands)
+    elif info["type"] == "S":
+        return encode_S(info, operands)
 
     raise NotImplementedError("encode_instruction: pendiente de implementar")
 
@@ -144,4 +229,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
        
