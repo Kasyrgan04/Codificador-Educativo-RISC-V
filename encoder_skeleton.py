@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import textwrap
 
 SOPORTADAS = ["add", "sub", "and", "or", "addi", "andi",
               "lw", "lb", "sw", "sb", "beq", "bne"]
@@ -27,11 +28,11 @@ INSTRUCTIONS = {
         "funct7" : 0b0000000
         },
 
-    "or" : {
-        "type" : "R",
-        "opcode" : 0b0110011,
-        "funct3" : 0b110,
-        "funct7" : 0b0100000
+    "or": {
+        "type": "R",
+        "opcode": 0b0110011,
+        "funct3": 0b110,
+        "funct7": 0b0000000
     },
 
     # FORMATO I ARITMETICO
@@ -123,6 +124,11 @@ def immediate_bits(value, bits):
     value = int(value)
     return value & ((1 << bits) - 1)
 
+def sign_extend(value, bits):
+    if value & (1 << (bits - 1)):
+        value -= (1 << bits)
+    return value
+
 def encode_R(info, operands):
     rd = register_number(operands[0])
     rs1 = register_number(operands[1])
@@ -205,23 +211,9 @@ def encode_B(info, operands):
     return word
 
 def encode_instruction(instruction: str) -> int:
-    
-    """
-    Recibe una instrucción como texto, p. ej. "add x5, x6, x7", y debe
-    retornar su codificación de 32 bits como entero (0 <= valor < 2**32).
 
-    Debe soportar únicamente las instrucciones en SOPORTADAS. Los valores
-    de opcode/funct3/funct7 de cada una NO se proveen aquí: deben
-    investigarse en el manual oficial de la ISA RISC-V (ver referencia en
-    la especificación) y documentarse en el README.
-    """
-    # TODO: implementar. Sugerencia: parsear el mnemónico y los operandos,
-    # despachar según el formato (R/I/S/B), y ensamblar los campos con
-    # operaciones de bits.
     mnemonic, operands = parse_instruction(instruction)
     info = get_instruction_info(mnemonic)
-    print(mnemonic)
-    print(info)
 
     if info["type"] == "R":
         return encode_R(info, operands)
@@ -234,18 +226,195 @@ def encode_instruction(instruction: str) -> int:
     else:
         raise NotImplementedError("instrucción no soportada")
 
+def decode_R(word: int) -> dict:
+    funct7 = (word >> 25) & 0x7F
+    rs2 = (word >> 20) & 0x1F
+    rs1 = (word >> 15) & 0x1F
+    funct3 = (word >> 12) & 0x7
+    rd = (word >> 7) & 0x1F
+    opcode = word & 0x7F
+
+    return {
+        "funct7": funct7,
+        "rs2": rs2,
+        "rs1": rs1,
+        "funct3": funct3,
+        "rd": rd,
+        "opcode": opcode
+    }
+
+def explain_R(word):
+
+    fields = decode_R(word)
+
+    return textwrap.dedent(f"""
+        Formato: R
+
+        Bits:
+        {word:032b}
+
+        Campos:
+
+        funct7  [31:25]: {fields['funct7']:07b} ({fields['funct7']})
+        rs2     [24:20]: x{fields['rs2']} ({fields['rs2']})
+        rs1     [19:15]: x{fields['rs1']} ({fields['rs1']})
+        funct3  [14:12]: {fields['funct3']:03b} ({fields['funct3']})
+        rd      [11:7] : x{fields['rd']} ({fields['rd']})
+        opcode  [6:0]  : {fields['opcode']:07b} ({fields['opcode']})
+        """)
+
+def decode_I(word: int) -> dict:
+    imm_bits = (word >> 20) & 0xFFF
+    imm = sign_extend(imm_bits, 12)
+    rs1 = (word >> 15) & 0x1F
+    funct3 = (word >> 12) & 0x7
+    rd = (word >> 7) & 0x1F 
+    opcode = word & 0x7F
+
+    return {
+        "imm": imm,
+        "imm_bits": imm_bits,
+        "rs1": rs1,
+        "funct3": funct3,
+        "rd": rd,
+        "opcode": opcode
+    }
+
+def explain_I(word):
+
+    fields = decode_I(word)
+
+    return textwrap.dedent(f"""
+        Formato: I
+
+        Bits:
+        {word:032b}
+
+        Campos:
+
+        imm     [31:20]: {fields['imm_bits']:012b} ({fields['imm']})
+        rs1     [19:15]: x{fields['rs1']} ({fields['rs1']})
+        funct3  [14:12]: {fields['funct3']:03b} ({fields['funct3']})
+        rd      [11:7] : x{fields['rd']} ({fields['rd']})
+        opcode  [6:0]  : {fields['opcode']:07b} ({fields['opcode']})
+        """)
+
+def decode_S(word: int) -> dict:
+
+    imm_4_0 = (word >> 7) & 0x1F
+    funct3 = (word >> 12) & 0x7
+    rs1 = (word >> 15) & 0x1F
+    rs2 = (word >> 20) & 0x1F
+    imm_11_5 = (word >> 25) & 0x7F
+    opcode = word & 0x7F
+
+    imm = (imm_11_5 << 5) | imm_4_0
+    imm = sign_extend(imm, 12)
+
+    return {
+        "imm": imm,
+        "rs1": rs1,
+        "rs2": rs2,
+        "funct3": funct3,
+        "opcode": opcode,
+        "imm_11_5": imm_11_5,
+        "imm_4_0": imm_4_0
+    }
+
+def explain_S(word):
+
+    fields = decode_S(word)
+
+    return textwrap.dedent(f"""
+    Formato: S
+
+    Bits:
+    {word:032b}
+
+    Campos:
+
+    imm[11:5] [31:25]: {fields['imm_11_5']:07b} ({fields['imm_11_5']})
+    rs2       [24:20]: x{fields['rs2']} ({fields['rs2']})
+    rs1       [19:15]: x{fields['rs1']} ({fields['rs1']})
+    funct3    [14:12]: {fields['funct3']:03b} ({fields['funct3']})
+    imm[4:0]  [11:7] : {fields['imm_4_0']:05b} ({fields['imm_4_0']})
+    opcode    [6:0] : {fields['opcode']:07b} ({fields['opcode']})
+
+    Inmediato reconstruido:
+    {fields['imm']}
+    """)
+
+
+def decode_B(word: int) -> dict:
+    imm_12 = (word >> 31) & 0x1
+    imm_10_5 = (word >> 25) & 0x3F
+    rs2 = (word >> 20) & 0x1F
+    rs1 = (word >> 15) & 0x1F
+    funct3 = (word >> 12) & 0x7
+    imm_4_1 = (word >> 8) & 0xF
+    imm_11 = (word >> 7) & 0x1
+    opcode = word & 0x7F
+    imm = (
+    (imm_12 << 12) |
+    (imm_11 << 11) |
+    (imm_10_5 << 5) |
+    (imm_4_1 << 1)
+)
+    imm = sign_extend(imm, 13)
+
+    return {
+        "imm_12": imm_12,
+        "imm_10_5": imm_10_5,
+        "rs2": rs2,
+        "rs1": rs1,
+        "funct3": funct3,
+        "imm_4_1": imm_4_1,
+        "imm_11": imm_11,
+        "imm": imm,
+        "opcode": opcode
+    }
+
+def explain_B(word):
+
+    fields = decode_B(word)
+
+    return textwrap.dedent(f"""
+    Formato: B
+
+    Bits:
+    {word:032b}
+
+    Campos:
+
+    imm[12]    [31]   : {fields['imm_12']:01b} ({fields['imm_12']})
+    imm[10:5]  [30:25]: {fields['imm_10_5']:06b} ({fields['imm_10_5']})
+    rs2        [24:20]: x{fields['rs2']} ({fields['rs2']})
+    rs1        [19:15]: x{fields['rs1']} ({fields['rs1']})
+    funct3     [14:12]: {fields['funct3']:03b} ({fields['funct3']})
+    imm[4:1]   [11:8] : {fields['imm_4_1']:04b} ({fields['imm_4_1']})
+    imm[11]    [7]    : {fields['imm_11']:01b} ({fields['imm_11']})
+    opcode     [6:0]  : {fields['opcode']:07b} ({fields['opcode']})
+
+    Inmediato reconstruido:
+    {fields['imm']}
+    """)
+
+
 
 def explain_instruction(instruction: str, word: int) -> str:
-    """
-    Debe retornar un texto (para imprimirse en pantalla) que muestre, de
-    forma visual, los 32 bits de 'word' divididos en los campos del
-    formato correspondiente (R, I, S o B) — indicando el rango de bits y
-    el valor de cada campo — junto con una breve explicación de cada uno.
-    El formato visual (colores, tabla, arte ASCII, etc.) queda a su
-    criterio, siempre que sea claro.
-    """
-    # TODO: implementar.
-    raise NotImplementedError("explain_instruction: pendiente de implementar")
+    mnemonic, operands = parse_instruction(instruction)
+    info = get_instruction_info(mnemonic)
+
+    if info["type"] == "R":
+        return explain_R(word)
+    elif info["type"] == "I":
+        return explain_I(word)
+    elif info["type"] == "S":
+        return explain_S(word)
+    elif info["type"] == "B":
+        return explain_B(word)
+    else:
+        raise NotImplementedError("Instrucción no soportada")
 
 
 def main():
@@ -256,9 +425,7 @@ def main():
 
     instruction = sys.argv[1]
     word = encode_instruction(instruction) & 0xFFFFFFFF
-
-    #print(explain_instruction(instruction, word))
-    print(hex(word))
+    print(explain_instruction(instruction, word))
 
     # No modificar el formato de la siguiente línea: la especificación la
     # requiere, literal, para permitir la validación automática.
