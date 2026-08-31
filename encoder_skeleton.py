@@ -75,6 +75,18 @@ INSTRUCTIONS = {
         "opcode" : 0b0100011,
         "funct3" : 0b000
     },
+
+    #Formato B
+    "beq" : {
+        "type" : "B",
+        "opcode" : 0b1100011,
+        "funct3" : 0b000
+    },
+    "bne" : {
+        "type" : "B",
+        "opcode" : 0b1100011,
+        "funct3" : 0b001
+    }
 }
 
 def get_instruction_info(mnemonic):
@@ -168,6 +180,30 @@ def encode_S(info, operands):
     )
     return word
 
+def encode_B(info, operands):
+    rs1 = register_number(operands[0])
+    rs2 = register_number(operands[1])
+    imm = int(operands[2])
+
+    imm = immediate_bits(imm, 13)
+
+    imm_12 = (imm >> 12) & 0x1
+    imm_10_5 = (imm >> 5) & 0x3F
+    imm_4_1 = (imm >> 1) & 0xF
+    imm_11 = (imm >> 11) & 0x1
+
+    word = (
+        (imm_12 << 31) |
+        (imm_10_5 << 25) |
+        (rs2 << 20) |
+        (rs1 << 15) |
+        (info["funct3"] << 12) |
+        (imm_4_1 << 8) |
+        (imm_11 << 7) |
+        (info["opcode"])
+    )
+    return word
+
 def encode_instruction(instruction: str) -> int:
     
     """
@@ -193,8 +229,10 @@ def encode_instruction(instruction: str) -> int:
         return encode_I(info, operands)
     elif info["type"] == "S":
         return encode_S(info, operands)
-
-    raise NotImplementedError("encode_instruction: pendiente de implementar")
+    elif info["type"] == "B":
+        return encode_B(info, operands)
+    else:
+        raise NotImplementedError("instrucción no soportada")
 
 
 def explain_instruction(instruction: str, word: int) -> str:
