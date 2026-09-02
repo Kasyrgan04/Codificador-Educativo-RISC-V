@@ -248,20 +248,81 @@ def explain_R(word):
     fields = decode_R(word)
 
     return textwrap.dedent(f"""
-        Formato: R
+    Formato: R
 
-        Bits:
+    Bits:
         {word:032b}
 
-        Campos:
-
+    Campos:
         funct7  [31:25]: {fields['funct7']:07b} ({fields['funct7']})
         rs2     [24:20]: x{fields['rs2']} ({fields['rs2']})
         rs1     [19:15]: x{fields['rs1']} ({fields['rs1']})
         funct3  [14:12]: {fields['funct3']:03b} ({fields['funct3']})
         rd      [11:7] : x{fields['rd']} ({fields['rd']})
         opcode  [6:0]  : {fields['opcode']:07b} ({fields['opcode']})
+
+        {describe_R(fields)}
         """)
+
+def describe_R(fields):
+
+    if fields["funct3"] == 0 and fields["funct7"] == 0:
+        operation = "ADD"
+        operation_text = (
+            f"x{fields['rd']} = x{fields['rs1']} + x{fields['rs2']}"
+        )
+
+    elif fields["funct3"] == 0 and fields["funct7"] == 32:
+        operation = "SUB"
+        operation_text = (
+            f"x{fields['rd']} = x{fields['rs1']} - x{fields['rs2']}"
+        )
+
+    elif fields["funct3"] == 7:
+        operation = "AND"
+        operation_text = (
+            f"x{fields['rd']} = x{fields['rs1']} & x{fields['rs2']}"
+        )
+
+    elif fields["funct3"] == 6:
+        operation = "OR"
+        operation_text = (
+            f"x{fields['rd']} = x{fields['rs1']} | x{fields['rs2']}"
+        )
+
+    else:
+        operation = "desconocida"
+        operation_text = ""
+
+    return textwrap.dedent(f"""
+    Descripción:
+
+    Operación: {operation}
+
+    funct7:
+      Identifica la variante de la operación R. Valor: {fields['funct7']:07b} ({fields['funct7']}).
+
+    rs2:
+      Segundo registro fuente.Contiene el segundo operando: x{fields['rs2']}.
+
+    rs1:
+      Primer registro fuente. Contiene el primer operando: x{fields['rs1']}.
+
+    funct3:
+      Junto con opcode identifica la operación dentro del formato R. 
+      Valor: {fields['funct3']:03b} ({fields['funct3']}).
+
+    rd:
+      Registro de destino. El resultado de la operación se almacena en: x{fields['rd']}.
+
+    opcode:
+      Identifica la instrucción como formato R. Valor: {fields['opcode']:07b} ({fields['opcode']}).
+
+    Resultado:
+      {operation_text}
+
+    
+    """)
 
 def decode_I(word: int) -> dict:
     imm_bits = (word >> 20) & 0xFFF
@@ -297,7 +358,65 @@ def explain_I(word):
         funct3  [14:12]: {fields['funct3']:03b} ({fields['funct3']})
         rd      [11:7] : x{fields['rd']} ({fields['rd']})
         opcode  [6:0]  : {fields['opcode']:07b} ({fields['opcode']})
+
+        {describe_I(fields)}
         """)
+
+def describe_I(fields):
+    if fields["funct3"] == 0 and fields["opcode"]==3:
+        operation = "LB"
+        operation_text = (
+            f"x{fields['rd']} = Mem[x{fields['rs1']} + ({fields['imm']})] (carga de byte)"
+        )
+    elif fields["funct3"] == 2 and fields["opcode"]==3:
+        operation = "LW"
+        operation_text = (
+            f"x{fields['rd']} = Mem[x{fields['rs1']} + ({fields['imm']})] (carga de palabra)"
+        )
+    elif fields["funct3"] == 0 and fields["opcode"]==19:
+        operation = "ADDI"
+        operation_text = (
+            f"x{fields['rd']} = x{fields['rs1']} + ({fields['imm']})"
+        )
+    elif fields["funct3"] == 7 and fields["opcode"]==19:
+        operation = "ANDI"
+        operation_text = (
+            f"x{fields['rd']} = x{fields['rs1']} & ({fields['imm']})"
+        )
+    else:
+        operation = "desconocida"
+        operation_text = ""
+
+    return textwrap.dedent(f"""
+    Descripción:
+
+    Operación: {operation}
+
+
+    imm:
+      Inmediato de 12 bits con signo.
+      Contiene el valor inmediato: {fields['imm_bits']:012b} ({fields['imm']}).
+      Se utiliza como operando inmediato o desplazamiento según la instrucción. 
+      
+
+    rs1:
+      Registro fuente. Contiene el operando: x{fields['rs1']}.
+
+    funct3:
+      Junto con opcode identifica la operación dentro del formato I. 
+      Valor: {fields['funct3']:03b} ({fields['funct3']}).
+
+    rd:
+      Registro destino. El resultado de la operación se almacena en: x{fields['rd']}.
+
+    opcode:
+      Identifica la instrucción como formato I. Valor: {fields['opcode']:07b} ({fields['opcode']}).  
+    
+    Resultado:
+      {operation_text}
+
+    
+    """)
 
 def decode_S(word: int) -> dict:
 
@@ -308,11 +427,12 @@ def decode_S(word: int) -> dict:
     imm_11_5 = (word >> 25) & 0x7F
     opcode = word & 0x7F
 
-    imm = (imm_11_5 << 5) | imm_4_0
-    imm = sign_extend(imm, 12)
+    imm_bits = (imm_11_5 << 5) | imm_4_0
+    imm = sign_extend(imm_bits, 12)
 
     return {
         "imm": imm,
+        "imm_bits": imm_bits,
         "rs1": rs1,
         "rs2": rs2,
         "funct3": funct3,
@@ -342,8 +462,55 @@ def explain_S(word):
 
     Inmediato reconstruido:
     {fields['imm']}
+    {describe_S(fields)}
     """)
 
+def describe_S(fields):
+    if fields["funct3"] == 0 and fields["opcode"]==35:
+        operation = "SB"
+        operation_text = (
+            f"Mem[x{fields['rs1']} + ({fields['imm']})] = "
+            f"x{fields['rs2']} (almacenamiento de byte)"
+        )
+    elif fields["funct3"] == 2 and fields["opcode"]==35:
+        operation = "SW"
+        operation_text = (
+            f"Mem[x{fields['rs1']} + ({fields['imm']})] = "
+            f"x{fields['rs2']} (almacenamiento de palabra)"
+        )
+    else:
+        operation = "desconocida"
+        operation_text = ""
+
+    return textwrap.dedent(f"""
+    Descripción:
+
+    Operación: {operation}
+
+    imm:
+      Inmediato de 12 bits con signo.
+      Contiene el valor inmediato: {fields['imm_bits']:012b} ({fields['imm']}).
+      Se suma al registro base rs1 para obtener la dirección efectiva de memoria.
+      
+    rs1:
+      Registro base de la dirección de memoria: x{fields['rs1']}.
+      La dirección efectiva se calcula como x{fields['rs1']} + inmediato.
+
+    rs2:
+      Registro que contiene el dato a almacenar en memoria: x{fields['rs2']}.
+
+    funct3:
+      Junto con opcode identifica la operación dentro del formato S. 
+      Valor: {fields['funct3']:03b} ({fields['funct3']}).
+
+    opcode:
+      Identifica la instrucción como formato S. Valor: {fields['opcode']:07b} ({fields['opcode']}).  
+    
+    Resultado:
+      {operation_text}
+
+    
+    """)
 
 def decode_B(word: int) -> dict:
     imm_12 = (word >> 31) & 0x1
@@ -354,13 +521,13 @@ def decode_B(word: int) -> dict:
     imm_4_1 = (word >> 8) & 0xF
     imm_11 = (word >> 7) & 0x1
     opcode = word & 0x7F
-    imm = (
+    imm_bits = (
     (imm_12 << 12) |
     (imm_11 << 11) |
     (imm_10_5 << 5) |
     (imm_4_1 << 1)
 )
-    imm = sign_extend(imm, 13)
+    imm = sign_extend(imm_bits, 13)
 
     return {
         "imm_12": imm_12,
@@ -371,6 +538,7 @@ def decode_B(word: int) -> dict:
         "imm_4_1": imm_4_1,
         "imm_11": imm_11,
         "imm": imm,
+        "imm_bits": imm_bits,
         "opcode": opcode
     }
 
@@ -397,9 +565,57 @@ def explain_B(word):
 
     Inmediato reconstruido:
     {fields['imm']}
+    {describe_B(fields)}
     """)
 
+def describe_B(fields):
+    if fields["funct3"] == 0 and fields["opcode"]==99:
+        operation = "BEQ"
+        operation_text = (
+            f"Si (x{fields['rs1']} == x{fields['rs2']}):\n"
+            f"          PC = PC + ({fields['imm']})\n\n"
+            f"      Si no:\n"
+            f"          PC = PC + 4"
+        )
+    elif fields["funct3"] == 1 and fields["opcode"]==99:
+        operation = "BNE"
+        operation_text = (
+                    f"Si (x{fields['rs1']} != x{fields['rs2']}):\n"
+                    f"          PC = PC + ({fields['imm']})\n\n"
+                    f"      Si no:\n"
+                    f"          PC = PC + 4"
+                )
+    else:
+        operation = "desconocida"
+        operation_text = ""
 
+    return textwrap.dedent(f"""
+    Descripción:
+
+    Operación: {operation}
+
+    imm:
+      Inmediato de 13 bits con signo.
+      Contiene el valor inmediato: {fields['imm_bits']:013b} ({fields['imm']}).
+      Se utiliza como desplazamiento relativo al PC.
+      El salto se calcula como PC + inmediato cuando la condición se cumple.
+    
+    rs1:
+      Primer registro fuente. Contiene el primer valor a comparar: x{fields['rs1']}.
+
+    rs2:
+      Segundo registro fuente. Contiene el segundo valor a comparar: x{fields['rs2']}.
+
+    funct3:
+      Junto con opcode identifica la operación dentro del formato B. 
+      Valor: {fields['funct3']:03b} ({fields['funct3']}).
+
+    opcode:
+      Identifica la instrucción como formato B. Valor: {fields['opcode']:07b} ({fields['opcode']}).
+
+    Resultado:
+      {operation_text}
+    """)
 
 def explain_instruction(instruction: str, word: int) -> str:
     mnemonic, operands = parse_instruction(instruction)
@@ -415,6 +631,7 @@ def explain_instruction(instruction: str, word: int) -> str:
         return explain_B(word)
     else:
         raise NotImplementedError("Instrucción no soportada")
+
 
 
 def main():
