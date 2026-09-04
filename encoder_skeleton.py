@@ -5,8 +5,6 @@ import textwrap
 SOPORTADAS = ["add", "sub", "and", "or", "addi", "andi",
               "lw", "lb", "sw", "sb", "beq", "bne"]
 
-#Diccionario que contiene la información de cada instrucción soportada
-#Cada instrucción tiene un tipo (R, I, S o B), un opcode, un funct3 y, si corresponde, un funct7
 INSTRUCTIONS = {
     # FORMATO R 
     "add": {
