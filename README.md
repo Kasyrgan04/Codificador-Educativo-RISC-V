@@ -1,5 +1,7 @@
 # Codificador Educativo RISC-V
 
+[Documentación Técnica del proyecto](https://github.com/Kasyrgan04/Codificador-Educativo-RISC-V/blob/402883848c285810c27ee58480199452b61e032c/Documentacion_Tecnica.md)
+
 ## Preparación del entorno
 
 El codificador requiere

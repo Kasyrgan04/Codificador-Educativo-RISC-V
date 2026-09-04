@@ -6,6 +6,7 @@ El código está estructurado en diferentes componentes que separan las etapas
 de análisis, codificación, decodificación y explicación de una instrucción
 RISC-V.
 
+
 La organización del repositorio es la siguiente:
 
 ### Estructura del repositorio
