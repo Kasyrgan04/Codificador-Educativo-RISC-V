@@ -90,9 +90,11 @@ INSTRUCTIONS = {
     }
 }
 
+#Función auxiliar que retorna el mnemonico de una instrucción
 def get_instruction_info(mnemonic):
     return INSTRUCTIONS[mnemonic]
 
+#Separa la instrucción en su mnemónico y sus operandos
 def parse_instruction(instruction: str):
     instruction = instruction.replace(",", "")
     tokens = instruction.split()
@@ -120,15 +122,21 @@ def register_number(reg):
 
     return number
 
+#Función auxiliar que obtiene la representación en complemento a dos
+#de un inmediato conservando únicamente la cantidad de bits indicada.
 def immediate_bits(value, bits):
     value = int(value)
     return value & ((1 << bits) - 1)
 
+#Función auxiliar que recupera el valor con signo de un inmediato
+#codificado en complemento a dos con la cantidad de bits indicada.
 def sign_extend(value, bits):
     if value & (1 << (bits - 1)):
         value -= (1 << bits)
     return value
 
+#Función de encodificación de las instrucciones tipo R
+#Retorna la palabra de 32 bits correspondiente a la instrucción dada
 def encode_R(info, operands):
     rd = register_number(operands[0])
     rs1 = register_number(operands[1])
@@ -145,87 +153,9 @@ def encode_R(info, operands):
 
     return word
 
-def encode_I(info, operands):
-    rd = register_number(operands[0])
-
-    #Para instrucciones de carga
-    if info["opcode"] == 0b0000011:
-        imm, rs1 = parse_memory_operand(operands[1])
-    else:
-        rs1 = register_number(operands[1])
-        imm = operands[2]
-
-    imm = immediate_bits(imm, 12)
-
-    word = (
-        (imm << 20) |
-        (rs1 << 15) |
-        (info["funct3"] << 12) |
-        (rd << 7) |
-        (info["opcode"])
-    )
-
-    return word
-
-def encode_S(info, operands):
-    rs2 = register_number(operands[0])
-    imm, rs1 = parse_memory_operand(operands[1])
-
-    imm = immediate_bits(imm, 12)
-
-    imm_11_5 = (imm>>5) & 0x7F
-    imm_4_0 = imm & 0x1F
-
-    word = (
-        (imm_11_5 << 25) |
-        (rs2 << 20) |
-        (rs1 << 15) |
-        (info["funct3"] << 12) |
-        (imm_4_0 << 7) |
-        (info["opcode"])
-    )
-    return word
-
-def encode_B(info, operands):
-    rs1 = register_number(operands[0])
-    rs2 = register_number(operands[1])
-    imm = int(operands[2])
-
-    imm = immediate_bits(imm, 13)
-
-    imm_12 = (imm >> 12) & 0x1
-    imm_10_5 = (imm >> 5) & 0x3F
-    imm_4_1 = (imm >> 1) & 0xF
-    imm_11 = (imm >> 11) & 0x1
-
-    word = (
-        (imm_12 << 31) |
-        (imm_10_5 << 25) |
-        (rs2 << 20) |
-        (rs1 << 15) |
-        (info["funct3"] << 12) |
-        (imm_4_1 << 8) |
-        (imm_11 << 7) |
-        (info["opcode"])
-    )
-    return word
-
-def encode_instruction(instruction: str) -> int:
-
-    mnemonic, operands = parse_instruction(instruction)
-    info = get_instruction_info(mnemonic)
-
-    if info["type"] == "R":
-        return encode_R(info, operands)
-    elif info["type"] == "I":
-        return encode_I(info, operands)
-    elif info["type"] == "S":
-        return encode_S(info, operands)
-    elif info["type"] == "B":
-        return encode_B(info, operands)
-    else:
-        raise NotImplementedError("instrucción no soportada")
-
+#Función de decodificación de las instrucciones tipo R
+#Retorna un diccionario con los campos de la instrucción 
+#Utiliza desplazamientos y máscaras para extraer los campos de la palabra de 32 bits
 def decode_R(word: int) -> dict:
     funct7 = (word >> 25) & 0x7F
     rs2 = (word >> 20) & 0x1F
@@ -243,6 +173,8 @@ def decode_R(word: int) -> dict:
         "opcode": opcode
     }
 
+#Explica la instrucción tipo R decodificada, 
+#Muestra el significado de los campos, su posición en la palabra, el valor decimal y binario de cada campo y el resultado de la operación
 def explain_R(word):
 
     fields = decode_R(word)
@@ -264,6 +196,8 @@ def explain_R(word):
         {describe_R(fields)}
         """)
 
+#Describe la instrucción tipo R decodificada
+#Distingue en tre las distintas operaciones para cambiar el resultado final que muestra la operación realizada
 def describe_R(fields):
 
     if fields["funct3"] == 0 and fields["funct7"] == 0:
@@ -324,6 +258,32 @@ def describe_R(fields):
     
     """)
 
+#Encodifica la instrucción tipo I
+#Como existen de carga y aritméticas, se hace una distinción en el opcode para determinar de cual tipo es
+def encode_I(info, operands):
+    rd = register_number(operands[0])
+
+    #Para instrucciones de carga
+    if info["opcode"] == 0b0000011:
+        imm, rs1 = parse_memory_operand(operands[1])
+    else:
+        rs1 = register_number(operands[1])
+        imm = operands[2]
+
+    imm = immediate_bits(imm, 12)
+
+    word = (
+        (imm << 20) |
+        (rs1 << 15) |
+        (info["funct3"] << 12) |
+        (rd << 7) |
+        (info["opcode"])
+    )
+
+    return word
+
+#Decodifica la instrucción tipo I
+#Retorna un diccionario con los campos de la instrucción
 def decode_I(word: int) -> dict:
     imm_bits = (word >> 20) & 0xFFF
     imm = sign_extend(imm_bits, 12)
@@ -341,6 +301,8 @@ def decode_I(word: int) -> dict:
         "opcode": opcode
     }
 
+#Explica la instrucción tipo I decodificada
+#Muestra el significado de los campos, su posición en la palabra, el valor decimal y binario de cada campo y el resultado de la operación
 def explain_I(word):
 
     fields = decode_I(word)
@@ -362,6 +324,8 @@ def explain_I(word):
         {describe_I(fields)}
         """)
 
+#Describe la instrucción
+#Distingue entre las distintas operaciones para cambiar el resultado final que muestra la operación realizada
 def describe_I(fields):
     if fields["funct3"] == 0 and fields["opcode"]==3:
         operation = "LB"
@@ -418,6 +382,29 @@ def describe_I(fields):
     
     """)
 
+#Encodifica la instrucción tipo S
+#Retorna la palabra de 32 bits correspondiente a la instrucción dada
+def encode_S(info, operands):
+    rs2 = register_number(operands[0])
+    imm, rs1 = parse_memory_operand(operands[1])
+
+    imm = immediate_bits(imm, 12)
+
+    imm_11_5 = (imm>>5) & 0x7F
+    imm_4_0 = imm & 0x1F
+
+    word = (
+        (imm_11_5 << 25) |
+        (rs2 << 20) |
+        (rs1 << 15) |
+        (info["funct3"] << 12) |
+        (imm_4_0 << 7) |
+        (info["opcode"])
+    )
+    return word
+
+#decodifica la isntrucción
+#retorna un diccionario con los campos de la instrucción utilizando máscaras de bits y desplazamientos para extraer los campos de la palabra de 32 bits
 def decode_S(word: int) -> dict:
 
     imm_4_0 = (word >> 7) & 0x1F
@@ -427,9 +414,12 @@ def decode_S(word: int) -> dict:
     imm_11_5 = (word >> 25) & 0x7F
     opcode = word & 0x7F
 
+    #imm_bits es el valor sin complemento a 2 del inmediato, construido por la concatenatión de imm_11_5 y imm_4_0
+    #imm es el valor con signo del immediato reconstruido a partir de imm_bits
     imm_bits = (imm_11_5 << 5) | imm_4_0
     imm = sign_extend(imm_bits, 12)
 
+    #Se retorna tanto imm_bits como imm para poder hacer las representaciones en binario y decimal del inmediato
     return {
         "imm": imm,
         "imm_bits": imm_bits,
@@ -441,6 +431,8 @@ def decode_S(word: int) -> dict:
         "imm_4_0": imm_4_0
     }
 
+#Explica la instrucción
+#Muestra el significado de los campos, su posición en la palabra, el valor decimal y binario de cada campo y el resultado de la operación
 def explain_S(word):
 
     fields = decode_S(word)
@@ -465,6 +457,8 @@ def explain_S(word):
     {describe_S(fields)}
     """)
 
+#Describe la instrucción
+#Distingue entre las distintas operaciones para cambiar el resultado final que muestra la operación realizada
 def describe_S(fields):
     if fields["funct3"] == 0 and fields["opcode"]==35:
         operation = "SB"
@@ -512,6 +506,34 @@ def describe_S(fields):
     
     """)
 
+#Encodifica la instrucción tipo B
+#Retorna la palabra de 32 bits correspondiente a la instrucción dada
+def encode_B(info, operands):
+    rs1 = register_number(operands[0])
+    rs2 = register_number(operands[1])
+    imm = int(operands[2])
+
+    imm = immediate_bits(imm, 13)
+
+    imm_12 = (imm >> 12) & 0x1
+    imm_10_5 = (imm >> 5) & 0x3F
+    imm_4_1 = (imm >> 1) & 0xF
+    imm_11 = (imm >> 11) & 0x1
+
+    word = (
+        (imm_12 << 31) |
+        (imm_10_5 << 25) |
+        (rs2 << 20) |
+        (rs1 << 15) |
+        (info["funct3"] << 12) |
+        (imm_4_1 << 8) |
+        (imm_11 << 7) |
+        (info["opcode"])
+    )
+    return word
+
+#Decodifica la instrucción tipo B
+#Retorna un diccionario con los campos de la instrucción utilizando máscaras de bits y desplaz
 def decode_B(word: int) -> dict:
     imm_12 = (word >> 31) & 0x1
     imm_10_5 = (word >> 25) & 0x3F
@@ -529,6 +551,7 @@ def decode_B(word: int) -> dict:
 )
     imm = sign_extend(imm_bits, 13)
 
+    #El comportamiento de imm_bits y imm es similar al de las instrucciones tipo S, se retorna ambos para poder hacer las representaciones en binario y decimal del inmediato
     return {
         "imm_12": imm_12,
         "imm_10_5": imm_10_5,
@@ -542,6 +565,8 @@ def decode_B(word: int) -> dict:
         "opcode": opcode
     }
 
+#Explica la instrucción tipo B decodificada
+#Muestra el significado de los campos, su posición en la palabra, el valor decimal y
 def explain_B(word):
 
     fields = decode_B(word)
@@ -568,6 +593,8 @@ def explain_B(word):
     {describe_B(fields)}
     """)
 
+#Describe la instrucción tipo B decodificada
+#Distingue entre las distintas operaciones para cambiar el resultado final que muestra la operación realizada
 def describe_B(fields):
     if fields["funct3"] == 0 and fields["opcode"]==99:
         operation = "BEQ"
@@ -581,7 +608,7 @@ def describe_B(fields):
         operation = "BNE"
         operation_text = (
                     f"Si (x{fields['rs1']} != x{fields['rs2']}):\n"
-                    f"          PC = PC + ({fields['imm']})\n\n"
+                    f"          PC = PC + ({fields['imm']})"
                     f"      Si no:\n"
                     f"          PC = PC + 4"
                 )
@@ -595,11 +622,8 @@ def describe_B(fields):
     Operación: {operation}
 
     imm:
-      Inmediato de 13 bits con signo.
-      Contiene el valor inmediato: {fields['imm_bits']:013b} ({fields['imm']}).
-      Se utiliza como desplazamiento relativo al PC.
-      El salto se calcula como PC + inmediato cuando la condición se cumple.
-    
+      Inmediato de 13 bits con signo. Se utiliza como desplazamiento relativo al PC. Contiene el valor inmediato: {fields['imm_bits']:013b} ({fields['imm']}).
+      
     rs1:
       Primer registro fuente. Contiene el primer valor a comparar: x{fields['rs1']}.
 
@@ -607,15 +631,30 @@ def describe_B(fields):
       Segundo registro fuente. Contiene el segundo valor a comparar: x{fields['rs2']}.
 
     funct3:
-      Junto con opcode identifica la operación dentro del formato B. 
-      Valor: {fields['funct3']:03b} ({fields['funct3']}).
+      Junto con opcode identifica la operación dentro del formato B. Valor: {fields['funct3']:03b} ({fields['funct3']}).
 
     opcode:
       Identifica la instrucción como formato B. Valor: {fields['opcode']:07b} ({fields['opcode']}).
 
     Resultado:
-      {operation_text}
-    """)
+      {operation_text}""")
+
+
+def encode_instruction(instruction: str) -> int:
+
+    mnemonic, operands = parse_instruction(instruction)
+    info = get_instruction_info(mnemonic)
+
+    if info["type"] == "R":
+        return encode_R(info, operands)
+    elif info["type"] == "I":
+        return encode_I(info, operands)
+    elif info["type"] == "S":
+        return encode_S(info, operands)
+    elif info["type"] == "B":
+        return encode_B(info, operands)
+    else:
+        raise NotImplementedError("instrucción no soportada")
 
 def explain_instruction(instruction: str, word: int) -> str:
     mnemonic, operands = parse_instruction(instruction)
@@ -631,8 +670,6 @@ def explain_instruction(instruction: str, word: int) -> str:
         return explain_B(word)
     else:
         raise NotImplementedError("Instrucción no soportada")
-
-
 
 def main():
     if len(sys.argv) != 2:

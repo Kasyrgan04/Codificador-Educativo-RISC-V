@@ -1,31 +1,70 @@
-# Kit del proyecto
+# Codificador Educativo RISC-V
 
-- `encoder_skeleton.py`: esqueleto en Python con el contrato de entrada/salida
-  ya implementado. Complete `encode_instruction` y `explain_instruction`.
-  Su uso es opcional; puede implementar la herramienta en otro lenguaje o
-  desde cero, siempre que respete el mismo contrato (ver especificación).
-- `run.sh`: punto de entrada fijo y obligatorio (`./run.sh "<instruccion>"`).
-  Tal como se entrega, invoca `encoder_skeleton.py`. Si cambia de lenguaje o
-  de estructura, ajuste este archivo para que siga invocando su solución de
-  la misma forma.
-- `vectores_ejemplo.txt`: instrucciones de ejemplo junto con su codificación
-  correcta, para que pueda comprobar su herramienta desde el primer día.
+## Preparación del entorno
 
-## Cómo usar `vectores_ejemplo.txt`
+El codificador requiere
 
-El archivo tiene el formato `instruccion ; 0xHEX`, una por línea (las líneas
-que empiezan con `#` son comentarios). Por ejemplo:
+- Python 3.12
+- Sistema operativo con soporte para ejecución de scripts Bash 
+   - En Windows es posible ejecutar desde WSL o con una terminal de Git Bash
+   - En Linux basta con ejecutar los comandos desde la terminal
+
+No se requiere instalar bibliotecas adicionales para ejecutar la herramienta
+
+Antes de ejecutar la herramienta, otorgue permisos de ejecución a **run.sh**:
+
+```bash
+chmod +x run.sh
 
 ```
-add x7, x20, x6 ; 0x006a03b3
+## Instalación del toolchain
+
+Para realizar la validación contra el ensamblador y desensamblador oficial
+GNU RISC-V se requiere instalar el toolchain
+`riscv64-unknown-elf`.
+
+### Instalación en Ubuntu
+
+Actualizar la lista de paquetes:
+
+```bash
+sudo apt update
+```
+Instalar el toolchain:
+
+```bash
+sudo apt install binutils-riscv64-unknown-elf
+```
+Este proporciona las herramientas necesarias:
+- `riscv64-unknown-elf-as` : ensamblador GNU RISC-V
+- `riscv64-unknown-elf-objdump`: herramienta para desemsamblar y obtener el hexadecimal de las instrucciones.
+
+Comprobar que el ensamblador se instaló correctamente:
+```bash
+riscv64-unknown-elf-as --version
+```
+La salida esperada es
+```bash
+GNU assembler (2.42-1ubuntu1+6) 2.42
 ```
 
-Esto significa: al ejecutar `./run.sh "add x7, x20, x6"`, la línea `HEX:`
-de su salida debe ser exactamente `HEX: 0x006a03b3`.
+También comprobar que el desensamblador se instaló correctamente:
+```bash
+riscv64-unknown-elf-objdump --version
+```
+La salida esperada es
+```bash
+GNU objdump (2.42-1ubuntu1+6) 2.42
+```
 
-Puede comparar manualmente, o escribir un script propio corto que lea el
-archivo línea por línea, ejecute `./run.sh` con cada instrucción, y compare
-el resultado. Estos vectores son un conjunto de ejemplo para su propia
-comprobación; **no sustituyen** los al menos 3 casos de prueba por
-instrucción (36 en total) que la especificación pide construir y validar
-usted mismo contra el toolchain oficial (`objdump -d`).
+Con esto es posible ejecutar el script de validación con el siguiente comando:
+```bash
+python3 validaciones/validate_toolchain.py
+```
+
+### Consideraciones
+
+Durante la validación de instrucciones de salto condicional (formato B) se
+utilizan etiquetas dentro del archivo ensamblador generado, debido a que GNU
+assembler calcula los desplazamientos relativos de branch a partir de la
+posición de la etiqueta destino.

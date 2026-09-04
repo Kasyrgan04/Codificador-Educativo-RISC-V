@@ -1,0 +1,41 @@
+
+Instrucción                         Toolchain      Encoder        Estado
+--------------------------------------------------------------------------------
+add x31, x0, x1                     0x00100fb3     0x00100fb3     OK
+add x1, x31, x31                    0x01ff80b3     0x01ff80b3     OK
+add x16, x15, x8                    0x00878833     0x00878833     OK
+sub x31, x31, x0                    0x400f8fb3     0x400f8fb3     OK
+sub x0, x1, x31                     0x41f08033     0x41f08033     OK
+sub x18, x7, x5                     0x40538933     0x40538933     OK
+and x31, x31, x0                    0x000fffb3     0x000fffb3     OK
+and x2, x1, x30                     0x01e0f133     0x01e0f133     OK
+and x20, x15, x16                   0x0107fa33     0x0107fa33     OK
+or x31, x0, x31                     0x01f06fb3     0x01f06fb3     OK
+or x3, x25, x8                      0x008ce1b3     0x008ce1b3     OK
+or x14, x14, x14                    0x00e76733     0x00e76733     OK
+addi x31, x0, 2047                  0x7ff00f93     0x7ff00f93     OK
+addi x1, x31, -2048                 0x800f8093     0x800f8093     OK
+addi x10, x5, 0                     0x00028513     0x00028513     OK
+andi x31, x0, 2047                  0x7ff07f93     0x7ff07f93     OK
+andi x1, x31, -2048                 0x800ff093     0x800ff093     OK
+andi x20, x15, -1                   0xfff7fa13     0xfff7fa13     OK
+lw x31, 2047(x0)                    0x7ff02f83     0x7ff02f83     OK
+lw x1, -2048(x31)                   0x800fa083     0x800fa083     OK
+lw x15, 0(x10)                      0x00052783     0x00052783     OK
+lb x31, 2047(x0)                    0x7ff00f83     0x7ff00f83     OK
+lb x1, -2048(x31)                   0x800f8083     0x800f8083     OK
+lb x20, 15(x15)                     0x00f78a03     0x00f78a03     OK
+sw x31, 2047(x0)                    0x7ff02fa3     0x7ff02fa3     OK
+sw x0, -2048(x31)                   0x800fa023     0x800fa023     OK
+sw x15, 1023(x16)                   0x3ef82fa3     0x3ef82fa3     OK
+sb x31, 2047(x0)                    0x7ff00fa3     0x7ff00fa3     OK
+sb x0, -2048(x31)                   0x800f8023     0x800f8023     OK
+sb x20, -411(x23)                   0xe74b82a3     0xe74b82a3     OK
+beq x0, x31, +4094                  0x7ff00fe3     0x7ff00fe3     OK
+beq x31, x0, -4096                  0x800f8063     0x800f8063     OK
+beq x10, x10, +16                   0x00a50863     0x00a50863     OK
+bne x31, x0, +4094                  0x7e0f9fe3     0x7e0f9fe3     OK
+bne x0, x31, -4096                  0x81f01063     0x81f01063     OK
+bne x5, x6, -20                     0xfe6296e3     0xfe6296e3     OK
+--------------------------------------------------------------------------------
+36/36 pruebas correctas

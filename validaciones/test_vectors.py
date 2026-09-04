@@ -1,3 +1,10 @@
+import sys
+import os
+
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+
 from encoder_skeleton import encode_instruction, explain_instruction
 
 
@@ -27,9 +34,19 @@ def load_vectors(filename):
 
 def run_tests():
 
-    vectors = load_vectors("vectores_ejemplo.txt")
+    vectors = load_vectors("./vectores_ejemplo.txt")
 
     passed = 0
+
+    print()
+    print(
+        f"{'Instrucción':35}"
+        f"{'Vector':14}"
+        f"{'Encoder':14}"
+        f"{'Estado'}"
+    )
+
+    print("-" * 80)
 
     for instruction, expected in vectors:
 
@@ -37,20 +54,38 @@ def run_tests():
             result = encode_instruction(instruction)
 
             if result == expected:
-                print(f"OK   {instruction}")
+                status = "OK"
                 passed += 1
 
             else:
-                print(f"FAIL {instruction}")
-                print(f"     esperado: 0x{expected:08x}")
-                print(f"     obtenido: 0x{result:08x}")
+                status = "FAIL"
+
+            print(
+                f"{instruction:35}"
+                f"0x{expected:08x}   "
+                f"0x{result:08x}   "
+                f"{status}"
+            )
 
         except Exception as e:
-            print(f"ERROR {instruction}")
+
+            print(
+                f"{instruction:35}"
+                f"{'ERROR':14}"
+                f"{'ERROR':14}"
+                f"FAIL"
+            )
+
             print(f"      {e}")
 
-    print()
+    print("-" * 80)
     print(f"{passed}/{len(vectors)} pruebas correctas")
+
+
+    """print("\nValidación de explicaciones:")
+    print("-" * 80)
+
+    explain_passed = 0
 
     for instruction, expected in vectors:
 
@@ -60,6 +95,16 @@ def run_tests():
 
         if explanation:
             print(f"EXPLAIN OK {instruction}")
+            explain_passed += 1
+
+        else:
+            print(f"EXPLAIN FAIL {instruction}")
+
+
+    print()
+    print(
+        f"{explain_passed}/{len(vectors)} explicaciones correctas"
+    )"""
 
 
 if __name__ == "__main__":

@@ -1,0 +1,41 @@
+
+Instrucción                        Vector        Encoder       Estado
+--------------------------------------------------------------------------------
+add x7, x20, x6                    0x006a03b3   0x006a03b3   OK
+add x14, x26, x31                  0x01fd0733   0x01fd0733   OK
+add x28, x15, x0                   0x00078e33   0x00078e33   OK
+sub x5, x7, x18                    0x412382b3   0x412382b3   OK
+sub x6, x28, x0                    0x400e0333   0x400e0333   OK
+sub x31, x20, x13                  0x40da0fb3   0x40da0fb3   OK
+and x25, x16, x22                  0x01687cb3   0x01687cb3   OK
+and x22, x24, x4                   0x004c7b33   0x004c7b33   OK
+and x21, x5, x18                   0x0122fab3   0x0122fab3   OK
+or x18, x29, x9                    0x009ee933   0x009ee933   OK
+or x19, x1, x23                    0x0170e9b3   0x0170e9b3   OK
+or x23, x29, x27                   0x01beebb3   0x01beebb3   OK
+addi x5, x25, 2035                 0x7f3c8293   0x7f3c8293   OK
+addi x7, x27, 1974                 0x7b6d8393   0x7b6d8393   OK
+addi x25, x16, 1392                0x57080c93   0x57080c93   OK
+andi x30, x1, -209                 0xf2f0ff13   0xf2f0ff13   OK
+andi x8, x3, -1208                 0xb481f413   0xb481f413   OK
+andi x27, x30, -882                0xc8ef7d93   0xc8ef7d93   OK
+lw x30, -1049(x14)                 0xbe772f03   0xbe772f03   OK
+lw x29, 8(x30)                     0x008f2e83   0x008f2e83   OK
+lw x25, 1875(x19)                  0x7539ac83   0x7539ac83   OK
+lb x25, -389(x27)                  0xe7bd8c83   0xe7bd8c83   OK
+lb x18, -1973(x17)                 0x84b88903   0x84b88903   OK
+lb x2, 1705(x9)                    0x6a948103   0x6a948103   OK
+sw x31, -411(x23)                  0xe7fba2a3   0xe7fba2a3   OK
+sw x16, 1774(x31)                  0x6f0fa723   0x6f0fa723   OK
+sw x31, -1773(x27)                 0x91fda9a3   0x91fda9a3   OK
+sb x18, 1701(x20)                  0x6b2a02a3   0x6b2a02a3   OK
+sb x6, 72(x28)                     0x046e0423   0x046e0423   OK
+sb x28, 1439(x11)                  0x59c58fa3   0x59c58fa3   OK
+beq x30, x4, -80                   0xfa4f08e3   0xfa4f08e3   OK
+beq x31, x23, 16                   0x017f8863   0x017f8863   OK
+beq x26, x9, 60                    0x029d0e63   0x029d0e63   OK
+bne x5, x0, 60                     0x02029e63   0x02029e63   OK
+bne x12, x15, 16                   0x00f61863   0x00f61863   OK
+bne x17, x22, 20                   0x01689a63   0x01689a63   OK
+--------------------------------------------------------------------------------
+36/36 pruebas correctas
