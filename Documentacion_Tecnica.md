@@ -6,6 +6,8 @@ El código está estructurado en diferentes componentes que separan las etapas
 de análisis, codificación, decodificación y explicación de una instrucción
 RISC-V.
 
+[Documentación Técnica del proyecto](https://github.com/Kasyrgan04/Codificador-Educativo-RISC-V/blob/402883848c285810c27ee58480199452b61e032c/Documentacion_Tecnica.md)
+
 La organización del repositorio es la siguiente:
 
 ### Estructura del repositorio
