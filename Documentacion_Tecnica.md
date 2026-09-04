@@ -275,4 +275,6 @@ Para evitar modificaciones automáticas del ensamblador se utilizó la opción:
 ```
 Esta instrucción le indica al compilador que desactive las optimizaciones.
 
-La salida del script se guardó en **validaciones\validacion_toolchain.txt**
+La salida del script se guardó en [Validaciones contra toolchain](https://github.com/Kasyrgan04/Codificador-Educativo-RISC-V/blob/73503cc313033906c035d7e741be64d764b68ab2/validaciones/validacion_toolchain.txt)
+
+El script utilizado es [script para validación contra el toolchain](https://github.com/Kasyrgan04/Codificador-Educativo-RISC-V/blob/73503cc313033906c035d7e741be64d764b68ab2/validaciones/validate_toolchain.py)
